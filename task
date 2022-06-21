@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+dir=$(pwd)
+
+function :build {
+  COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+}
+
+function :start {
+  docker-compose up --remove-orphans
+}
+
+function :cli {
+  docker-compose run --rm -it $1 bash
+}
+
+function :exec {
+  docker-compose exec $1 $2
+}
+
+function :destroy {
+  docker-compose down
+  sudo rm -fR ./volumes
+}
+
+function :init {
+  :destroy
+  docker-compose up --remove-orphans -d
+
+  # probe peer hosts
+  for host in wm2 wa3 wm3; do
+    docker-compose exec wa2 gluster peer probe $host
+  done
+
+  # create, order is important, see https://docs.gluster.org/en/main/Administrator-Guide/Setting-Up-Volumes/#arbiter-configuration-for-replica-volumes
+  docker-compose exec wa2 gluster volume create gv0 replica 2 wa2:/data/brick1 wm2:/data/brick1 wa3:/data/brick1 wm3:/data/brick1 force
+  docker-compose exec wa2 gluster volume start gv0
+
+  # mount
+  for host in wa2 wm2 wa3 wm3; do
+    docker-compose exec $host mount -t glusterfs $host:/gv0 /mnt >/dev/null 2>/dev/null
+  done
+
+  # test
+  for host in wa2 wm2 wa3 wm3; do
+    docker-compose exec $host touch /mnt/example-$host.file
+  done
+
+  # check
+  echo
+  sudo find volumes/ -name 'example*'
+}
+
+function :test {
+  docker-compose exec auth auth_test -c /test.conf
+}
+
+function :push {
+  service=$1
+  docker tag giano/$service docker.csgalileo.org/giano/$service:latest
+  docker push docker.csgalileo.org/giano/$service:latest
+}
+
+function :help {
+  echo "$0 <task> <args>"
+  echo "Tasks:"
+
+  # We pick out the `:*` functions
+  compgen -A function | sed -En 's/(.*):(.*)/\1:\2/p' | cat -n
+}
+
+TIMEFORMAT="Task completed in %3lR"
+time ":${@:-help}"

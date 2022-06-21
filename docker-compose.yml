@@ -1,0 +1,24 @@
+version: '3'
+services:
+    wa2:
+        image: metal3d/glusterfs
+        privileged: true
+        volumes:
+        - ./volumes/wa2:/data
+
+    wm2:
+        image: metal3d/glusterfs
+        privileged: true
+        volumes:
+        - ./volumes/wm2:/data
+    wa3:
+        image: metal3d/glusterfs
+        privileged: true
+        volumes:
+        - ./volumes/wa3:/data
+
+    wm3:
+        image: metal3d/glusterfs
+        privileged: true
+        volumes:
+        - ./volumes/wm3:/data
