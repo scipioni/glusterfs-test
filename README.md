@@ -47,7 +47,7 @@ task meucci:kill
 create new files
 
 ```
-task test B
+task test C
 ```
 
 ## recover from failure
