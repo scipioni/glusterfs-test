@@ -33,13 +33,16 @@ function :init {
   done
 
   # create, order is important, see https://docs.gluster.org/en/main/Administrator-Guide/Setting-Up-Volumes/#arbiter-configuration-for-replica-volumes
-  docker-compose exec wa2 gluster volume create gv0 replica 2 wa2:/data/brick1 wm2:/data/brick1 wa3:/data/brick1 wm3:/data/brick1 force
+  docker-compose exec wa2 gluster volume create gv0 replica 2 wa2:/data/brick1 wm2:/data/brick1 force
   docker-compose exec wa2 gluster volume start gv0
 
-  # mount
-  for host in wa2 wm2 wa3 wm3; do
-    docker-compose exec $host mount -t glusterfs $host:/gv0 /mnt >/dev/null 2>/dev/null
-  done
+  # agsm usa agsm wa2
+  docker-compose exec wa2 mount -t glusterfs wa2:/gv0 /mnt >/dev/null 2>/dev/null
+  docker-compose exec wa3 mount -t glusterfs wa2:/gv0 /mnt >/dev/null 2>/dev/null
+
+  # meucci usa meucci wm2
+  docker-compose exec wm2 mount -t glusterfs wm2:/gv0 /mnt >/dev/null 2>/dev/null
+  docker-compose exec wm3 mount -t glusterfs wm2:/gv0 /mnt >/dev/null 2>/dev/null
 
   # test
   for host in wa2 wm2 wa3 wm3; do
