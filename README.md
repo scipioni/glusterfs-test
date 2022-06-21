@@ -1,9 +1,53 @@
 # glusterfs test
 
-4 nodes gluster test
+2 gluster servers and 4 gluster clients
+
+## init
 
 ```
 ./task init
 ```
 
 now check files created in ./volumes
+```
+tree -h volumes
+```
+
+
+## expand volumes with new bricks
+
+expand and rebalance
+```
+task expand
+```
+
+create new files 
+```
+task test B
+```
+now check files created in ./volumes
+```
+tree -h volumes
+```
+
+## failure test on meucci
+
+kill meucci servers
+```
+task meucci:kill
+```
+
+create new files
+```
+task test B
+```
+
+## recover from failure
+
+restore servers
+```
+task meucci:start
+```
+
+
+

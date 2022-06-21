@@ -40,28 +40,50 @@ function :init {
   docker-compose exec wa2 mount -t glusterfs wa2:/gv0 /mnt >/dev/null 2>/dev/null
   docker-compose exec wa3 mount -t glusterfs wa2:/gv0 /mnt >/dev/null 2>/dev/null
 
+  :meucci:mount
+
+  :test A
+}
+
+function :meucci:mount {
   # meucci usa meucci wm2
   docker-compose exec wm2 mount -t glusterfs wm2:/gv0 /mnt >/dev/null 2>/dev/null
   docker-compose exec wm3 mount -t glusterfs wm2:/gv0 /mnt >/dev/null 2>/dev/null
 
-  # test
+}
+
+function :expand {
+  # aggiungiamo dei nuovi brick (ovvero volumi openstack)
+  docker-compose exec wa2 gluster volume add-brick gv0 replica 2 wa2:/data/brick2 wm2:/data/brick2
+  docker-compose exec wa2 gluster volume rebalance gv0 start
+}
+
+function :meucci:kill {
+  docker-compose kill wm2
+  docker-compose kill wm3
+}
+
+function :meucci:start {
+  docker-compose up -d
+  :meucci:mount
+}
+
+function :test {
+  test=$1
+
+  echo
   for host in wa2 wm2 wa3 wm3; do
-    docker-compose exec $host touch /mnt/example-$host.file
+    docker-compose exec $host truncate -s 10m  /mnt/example-$test-$host.file
   done
 
   # check
   echo
-  sudo find volumes/ -name 'example*'
+  tree -h volumes
 }
 
-function :test {
-  docker-compose exec auth auth_test -c /test.conf
-}
-
-function :push {
-  service=$1
-  docker tag giano/$service docker.csgalileo.org/giano/$service:latest
-  docker push docker.csgalileo.org/giano/$service:latest
+function :status {
+  docker-compose exec wa2 gluster vol status
+  docker-compose exec wa2 gluster peer status
 }
 
 function :help {
