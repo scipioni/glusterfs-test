@@ -5,34 +5,56 @@ services:
         privileged: true
         volumes:
             - ./bricks/a1:/data
-
+        # ports:
+        #     - 24007:24007
+        #     - 24008:24008
+        #     - 49152:49152
+        #     - 49153:49153
+        #     - 49154:49154
+        #     - 49155:49155
+        #     - 49156:49156
+        #     - 49157:49157
+        #network_mode: "host"
+        # networks:
+        #     - site-a
+ 
     a2:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/a2:/data
+        # networks:
+        #     - site-a
     a3:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/a3:/data
-
+        # networks:
+        #     - site-a
     m1:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/m1:/data
-        ports:
-            - 24007:24007
-
+        # ports:
+        #     - 24007:24007
+        # networks:
+        #     - site-m
     m2:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/m2:/data
-
+        # networks:
+        #     - site-m
     m3:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/m3:/data
+        # networks:
+        #     - site-m
+# networks:
+#   site-a:
+#   site-m:

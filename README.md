@@ -75,6 +75,13 @@ create new files
 task test C
 ```
 
+## client
+
+```
+gluster --remote-host=localhost volume list
+```
+
+
 ## expand volumes with new bricks
 
 expand and rebalance
