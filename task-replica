@@ -37,7 +37,7 @@ function :boot {
     docker-compose exec $MASTER gluster peer probe $host
   done
 
-  docker-compose exec $MASTER gluster volume create gv0 replica 3 arbiter 1 a2:/data/brick1 m2:/data/brick1 a1:/data/brick1 m3:/data/brick1 a3:/data/brick1 m1:/data/brick1 force
+  docker-compose exec $MASTER gluster volume create gv0 replica 2 a1:/data/brick1 m1:/data/brick1 a2:/data/brick1 m2:/data/brick1 a3:/data/brick1 m3:/data/brick1 force
   sleep 2
   docker-compose exec $MASTER gluster volume start gv0
 
@@ -54,7 +54,7 @@ function :test {
   test=$1
 
   echo
-  for host in ${HOSTS_DATA}; do
+  for host in ${HOSTS}; do
     echo "create file on $host: /mnt/gv0/example-$test-$host.txt"
     #docker-compose exec $host truncate -s 10m /mnt/gv0/example-$test-$host.txt
     docker-compose exec $host bash -c "echo $test-$host > /mnt/gv0/example-$test-$host.txt"
@@ -79,7 +79,7 @@ function :expand {
 }
 
 function :meucci:kill {
-  #docker compose kill m1
+  docker compose kill m1
   docker compose kill m2
   docker compose kill m3
 }
@@ -110,34 +110,3 @@ function :help {
 TIMEFORMAT="Task completed in %3lR"
 time ":${@:-help}"
 
-# bricks/
-# ├── a1
-# │   └── brick1
-# │       ├── example-A-a3.txt
-# │       └── example-A-m2.txt
-# ├── a2
-# │   └── brick1
-# │       ├── example-A-a3.txt
-# │       └── example-A-m2.txt
-# ├── a3
-# │   └── brick1
-# │       ├── example-A-a3.txt
-# │       └── example-A-m2.txt
-# ├── m1
-# │   └── brick1
-# │       ├── example-A-a1.txt
-# │       ├── example-A-a2.txt
-# │       ├── example-A-m1.txt
-# │       └── example-A-m3.txt
-# ├── m2
-# │   └── brick1
-# │       ├── example-A-a1.txt
-# │       ├── example-A-a2.txt
-# │       ├── example-A-m1.txt
-# │       └── example-A-m3.txt
-# └── m3
-#     └── brick1
-#         ├── example-A-a1.txt
-#         ├── example-A-a2.txt
-#         ├── example-A-m1.txt
-#         └── example-A-m3.txt

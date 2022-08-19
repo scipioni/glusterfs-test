@@ -1,12 +1,15 @@
 # glusterfs test
 
-2 gluster servers and 4 gluster clients
+6 nodes: 3 'a' and 3 'm'
+
+arbiter: ./task-arbiter
+replica: ./task-replica
 
 ## build
 
 build docker image 
 ```
-./task build
+./task-arbiter build
 ```
 
 ## boot

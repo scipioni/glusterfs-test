@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+
+dir=$(pwd)
+
+MASTER=m1
+HOSTS="a1 a2 a3 m1 m2 m3"
+HOSTS_DATA="a2 a3 m2 m3" # no arbiter a1 m1
+
+function :build {
+  docker build -t galileo/glusterfs ./docker
+}
+
+function :start {
+  docker-compose up --remove-orphans
+}
+
+function :cli {
+  docker-compose run --rm -it $1 bash
+}
+
+function :exec {
+  docker-compose exec $1 $2
+}
+
+function :destroy {
+  docker-compose down
+  sudo rm -fR ./bricks
+}
+
+function :boot {
+  :destroy
+  docker-compose up --remove-orphans -d
+  sleep 5
+
+  # probe peer hosts
+  for host in $HOSTS; do
+    docker-compose exec $MASTER gluster peer probe $host
+  done
+
+  docker-compose exec $MASTER gluster volume create gv0 replica 3 arbiter 1 a2:/data/brick1 m2:/data/brick1 a1:/data/brick1 m3:/data/brick1 a3:/data/brick1 m1:/data/brick1 force
+  sleep 2
+  docker-compose exec $MASTER gluster volume start gv0
+
+  # mount volume on each node in /mnt/gv0
+  for host in $HOSTS; do
+    docker-compose exec $host mkdir -p /mnt/gv0
+    docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
+  done
+
+  #:test A
+}
+
+function :test {
+  test=$1
+
+  echo
+  for host in ${HOSTS_DATA}; do
+    echo "create file on $host: /mnt/gv0/example-$test-$host.txt"
+    #docker-compose exec $host truncate -s 10m /mnt/gv0/example-$test-$host.txt
+    docker-compose exec $host bash -c "echo $test-$host > /mnt/gv0/example-$test-$host.txt"
+  done
+
+  # check
+  echo
+  tree -h bricks
+}
+
+function :check {
+  for host in $HOSTS; do
+    echo -n "$host: "
+    docker-compose exec $host bash -c "cat /mnt/gv0/*"
+  done
+}
+
+function :expand {
+  # aggiungiamo dei nuovi brick (ovvero volumi openstack)
+  docker-compose exec wa2 gluster volume add-brick gv0 replica 2 wa2:/data/brick2 wm2:/data/brick2
+  docker-compose exec wa2 gluster volume rebalance gv0 start
+}
+
+function :meucci:kill {
+  #docker compose kill m1
+  docker compose kill m2
+  docker compose kill m3
+}
+
+function :meucci:start {
+  docker-compose up m1 m2 m3 -d
+  sleep 5
+  for host in m1 m2 m3; do
+    docker-compose exec $host mkdir -p /mnt/gv0
+    docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
+  done
+}
+
+function :status {
+  docker-compose exec $MASTER gluster vol info
+  docker-compose exec $MASTER gluster vol status
+  docker-compose exec $MASTER gluster peer status
+}
+
+function :help {
+  echo "$0 <task> <args>"
+  echo "Tasks:"
+
+  # We pick out the `:*` functions
+  compgen -A function | sed -En 's/(.*):(.*)/\1:\2/p' | cat -n
+}
+
+TIMEFORMAT="Task completed in %3lR"
+time ":${@:-help}"
+
