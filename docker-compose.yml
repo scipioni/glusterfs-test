@@ -1,24 +1,38 @@
 version: '3'
 services:
-    wa2:
-        image: metal3d/glusterfs
+    a1:
+        image: ${IMAGE}
         privileged: true
         volumes:
-        - ./volumes/wa2:/data
+            - ./bricks/a1:/data
 
-    wm2:
-        image: metal3d/glusterfs
+    a2:
+        image: ${IMAGE}
         privileged: true
         volumes:
-        - ./volumes/wm2:/data
-    wa3:
-        image: metal3d/glusterfs
+            - ./bricks/a2:/data
+    a3:
+        image: ${IMAGE}
         privileged: true
         volumes:
-        - ./volumes/wa3:/data
+            - ./bricks/a3:/data
 
-    wm3:
-        image: metal3d/glusterfs
+    m1:
+        image: ${IMAGE}
         privileged: true
         volumes:
-        - ./volumes/wm3:/data
+            - ./bricks/m1:/data
+        ports:
+            - 24007:24007
+
+    m2:
+        image: ${IMAGE}
+        privileged: true
+        volumes:
+            - ./bricks/m2:/data
+
+    m3:
+        image: ${IMAGE}
+        privileged: true
+        volumes:
+            - ./bricks/m3:/data

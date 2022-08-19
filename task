@@ -2,8 +2,12 @@
 
 dir=$(pwd)
 
+MASTER=m1
+HOSTS="a1 a2 a3 m1 m2 m3"
+HOSTS_DATA="a2 a3 m2 m3" # no arbiter a1 m1
+
 function :build {
-  COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+  docker build -t galileo/glusterfs ./docker
 }
 
 function :start {
@@ -20,36 +24,52 @@ function :exec {
 
 function :destroy {
   docker-compose down
-  sudo rm -fR ./volumes
+  sudo rm -fR ./bricks
 }
 
-function :init {
+function :boot {
   :destroy
   docker-compose up --remove-orphans -d
+  sleep 5
 
   # probe peer hosts
-  for host in wm2 wa3 wm3; do
-    docker-compose exec wa2 gluster peer probe $host
+  for host in $HOSTS; do
+    docker-compose exec $MASTER gluster peer probe $host
   done
 
-  # create, order is important, see https://docs.gluster.org/en/main/Administrator-Guide/Setting-Up-Volumes/#arbiter-configuration-for-replica-volumes
-  docker-compose exec wa2 gluster volume create gv0 replica 2 wa2:/data/brick1 wm2:/data/brick1 force
-  docker-compose exec wa2 gluster volume start gv0
+  docker-compose exec $MASTER gluster volume create gv0 replica 3 arbiter 1 a2:/data/brick1 m2:/data/brick1 a1:/data/brick1 m3:/data/brick1 a3:/data/brick1 m1:/data/brick1 force
+  sleep 2
+  docker-compose exec $MASTER gluster volume start gv0
 
-  # agsm usa agsm wa2
-  docker-compose exec wa2 mount -t glusterfs wa2:/gv0 /mnt >/dev/null 2>/dev/null
-  docker-compose exec wa3 mount -t glusterfs wa2:/gv0 /mnt >/dev/null 2>/dev/null
+  # mount volume on each node in /mnt/gv0
+  for host in $HOSTS; do
+    docker-compose exec $host mkdir -p /mnt/gv0
+    docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
+  done
 
-  :meucci:mount
-
-  :test A
+  #:test A
 }
 
-function :meucci:mount {
-  # meucci usa meucci wm2
-  docker-compose exec wm2 mount -t glusterfs wm2:/gv0 /mnt >/dev/null 2>/dev/null
-  docker-compose exec wm3 mount -t glusterfs wm2:/gv0 /mnt >/dev/null 2>/dev/null
+function :test {
+  test=$1
 
+  echo
+  for host in ${HOSTS_DATA}; do
+    echo "create file on $host: /mnt/gv0/example-$test-$host.txt"
+    #docker-compose exec $host truncate -s 10m /mnt/gv0/example-$test-$host.txt
+    docker-compose exec $host bash -c "echo $test-$host > /mnt/gv0/example-$test-$host.txt"
+  done
+
+  # check
+  echo
+  tree -h bricks
+}
+
+function :check {
+  for host in $HOSTS; do
+    echo -n "$host: "
+    docker-compose exec $host bash -c "cat /mnt/gv0/*"
+  done
 }
 
 function :expand {
@@ -59,31 +79,24 @@ function :expand {
 }
 
 function :meucci:kill {
-  docker-compose kill wm2
-  docker-compose kill wm3
+  #docker compose kill m1
+  docker compose kill m2
+  docker compose kill m3
 }
 
 function :meucci:start {
-  docker-compose up -d
-  :meucci:mount
-}
-
-function :test {
-  test=$1
-
-  echo
-  for host in wa2 wm2 wa3 wm3; do
-    docker-compose exec $host truncate -s 10m  /mnt/example-$test-$host.file
+  docker-compose up m1 m2 m3 -d
+  sleep 5
+  for host in m1 m2 m3; do
+    docker-compose exec $host mkdir -p /mnt/gv0
+    docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
   done
-
-  # check
-  echo
-  tree -h volumes
 }
 
 function :status {
-  docker-compose exec wa2 gluster vol status
-  docker-compose exec wa2 gluster peer status
+  docker-compose exec $MASTER gluster vol info
+  docker-compose exec $MASTER gluster vol status
+  docker-compose exec $MASTER gluster peer status
 }
 
 function :help {
@@ -96,3 +109,35 @@ function :help {
 
 TIMEFORMAT="Task completed in %3lR"
 time ":${@:-help}"
+
+# bricks/
+# ├── a1
+# │   └── brick1
+# │       ├── example-A-a3.txt
+# │       └── example-A-m2.txt
+# ├── a2
+# │   └── brick1
+# │       ├── example-A-a3.txt
+# │       └── example-A-m2.txt
+# ├── a3
+# │   └── brick1
+# │       ├── example-A-a3.txt
+# │       └── example-A-m2.txt
+# ├── m1
+# │   └── brick1
+# │       ├── example-A-a1.txt
+# │       ├── example-A-a2.txt
+# │       ├── example-A-m1.txt
+# │       └── example-A-m3.txt
+# ├── m2
+# │   └── brick1
+# │       ├── example-A-a1.txt
+# │       ├── example-A-a2.txt
+# │       ├── example-A-m1.txt
+# │       └── example-A-m3.txt
+# └── m3
+#     └── brick1
+#         ├── example-A-a1.txt
+#         ├── example-A-a2.txt
+#         ├── example-A-m1.txt
+#         └── example-A-m3.txt
