@@ -7,6 +7,7 @@ HOSTS="a1 a2 a3 m1 m2 m3"
 
 function :build {
   docker build -t galileo/glusterfs ./docker
+  docker compose build kvm
 }
 
 function :start {
@@ -23,7 +24,7 @@ function :exec {
 
 function :destroy {
   docker-compose down
-  sudo rm -fR ./bricks
+  sudo rm -fR ./runtime/bricks
 }
 
 function :boot {
@@ -39,6 +40,9 @@ function :boot {
 
   docker-compose exec $MASTER gluster volume create gv0 replica 2 a1:/data/brick1 m1:/data/brick1 a2:/data/brick1 m2:/data/brick1 a3:/data/brick1 m3:/data/brick1 force
   sleep 1
+  docker-compose exec $MASTER gluster volume set gv0 server.allow-insecure on
+  #gluster volume set <vol-name> storage.owner-uid 107
+  #gluster volume set <vol-name> storage.owner-gid 107
   docker-compose exec $MASTER gluster volume start gv0
 
   # mount volume on each node in /mnt/gv0
@@ -62,7 +66,7 @@ function :test {
 
   # check
   echo
-  tree -h bricks
+  tree -h runtime/bricks
 }
 
 function :check {
@@ -108,6 +112,34 @@ function :status {
   docker-compose exec $MASTER gluster vol info
   docker-compose exec $MASTER gluster vol status
   docker-compose exec $MASTER gluster peer status
+}
+
+function :vm:create {
+  # copiamo l'immagine backing su gluster
+  docker-compose exec kvm mount -t glusterfs $MASTER:/gv0 /mnt
+  docker-compose exec kvm cp -v /vms/jammy-server-cloudimg-amd64-disk-kvm.img /mnt/
+  docker-compose exec kvm umount /mnt
+
+  # creaiamo una immagine jammy.qcow2 da 10G con backing quella ufficiale
+  qemu-img create -f qcow2 -F qcow2 -b gluster://a1/gv0/jammy-server-cloudimg-amd64-disk-kvm.img gluster://a1/gv0/jammy.qcow2 10G
+  
+  # creiamo la vm
+  docker-compose exec kvm virsh destroy ubuntu >/dev/null 2>&1 
+  docker-compose exec kvm virsh undefine ubuntu >/dev/null 2>&1 
+  docker-compose exec kvm virsh define /vms/ubuntu.xml
+  docker-compose exec kvm virsh start ubuntu
+}
+
+function :vm:dowload {
+  IMAGE=jammy-server-cloudimg-amd64-disk-kvm.img
+  if [ -f ./vms/$IMAGE ]; then
+    mkdir -p runtime
+    cd runtime
+    wget http://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-disk-kvm.img \
+    && virt-customize -a vms/jammy-server-cloudimg-amd64-disk-kvm.img --root-password password:root
+    qemu-img create -f qcow2 -b $IMAGE jammy.qcow2 10G
+    echo 'customized ubuntu with password root un user root'
+  fi
 }
 
 function :help {

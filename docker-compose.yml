@@ -1,7 +1,6 @@
 # agsm    <-> gwa <-> gwm <-> meucci
-# 172.28  <-> 172.30 <-> 172.29
-# 172.28.0.11 ---agsm--- 172.28.0.254-172.30.0.2 ---internet--- 172.30.0.4-172.29.0.254 ---meucci---  172.29.0.1
-
+# 172.16.15.0/26  <-> 172.16.15.64/26 <-> 172.16.15.128/26
+# 172.16.15.11-13 ---agsm--- 172.16.15.62-172.16.15.66 ---internet--- 172.16.15.67-172.16.15.190 ---meucci---  172.16.15.131-133
 
 version: '3'
 services:
@@ -9,13 +8,13 @@ services:
         image: ${IMAGE}
         privileged: true
         volumes:
-            - ./bricks/a1:/data
+            - ${BRICKS}/a1:/data
             - ./hosts:/etc/hosts
         environment:
-            - GW=172.28.0.254
+            - GW=172.16.15.62
         networks:
             agsm:
-                ipv4_address: 172.28.0.11
+                ipv4_address: 172.16.15.11
         # ports:
         #     - 24007:24007
         #     - 24008:24008
@@ -32,92 +31,104 @@ services:
         image: ${IMAGE}
         privileged: true
         volumes:
-            - ./bricks/a2:/data
+            - ${BRICKS}/a2:/data
             - ./hosts:/etc/hosts
         environment:
-            - GW=172.28.0.254
+            - GW=172.16.15.62
         networks:
             agsm:
-                ipv4_address: 172.28.0.12
+                ipv4_address: 172.16.15.12
     a3:
         image: ${IMAGE}
         privileged: true
         volumes:
-            - ./bricks/a3:/data
+            - ${BRICKS}/a3:/data
             - ./hosts:/etc/hosts
         environment:
-            - GW=172.28.0.254
+            - GW=172.16.15.62
         networks:
             agsm:
-                ipv4_address: 172.28.0.13
-    gwa:  
+                ipv4_address: 172.16.15.13
+    gwa:
         image: ${IMAGE}
         privileged: true
         environment:
-            - ROUTE=172.29.0.0/24 via 172.30.0.4
+            - ROUTE=172.16.15.128/26 via 172.16.15.67
         networks:
             agsm:
-                ipv4_address: 172.28.0.254
+                ipv4_address: 172.16.15.62
             internet:
-                ipv4_address: 172.30.0.2
+                ipv4_address: 172.16.15.66
 
-    gwm:  
+    gwm:
         image: ${IMAGE}
         privileged: true
         environment:
-            - ROUTE=172.28.0.0/24 via 172.30.0.2
+            - ROUTE=172.16.15.0/26 via 172.16.15.66
         networks:
             meucci:
-                ipv4_address: 172.29.0.254
+                ipv4_address: 172.16.15.190
             internet:
-                ipv4_address: 172.30.0.4
+                ipv4_address: 172.16.15.67
     m1:
         image: ${IMAGE}
         privileged: true
         volumes:
-            - ./bricks/m1:/data
+            - ${BRICKS}/m1:/data
             - ./hosts:/etc/hosts
         environment:
-            - GW=172.29.0.254
+            - GW=172.16.15.190
         networks:
             meucci:
-                ipv4_address: 172.29.0.11
+                ipv4_address: 172.16.15.131
     m2:
         image: ${IMAGE}
         privileged: true
         volumes:
-            - ./bricks/m2:/data
+            - ${BRICKS}/m2:/data
             - ./hosts:/etc/hosts
         environment:
-            - GW=172.29.0.254
+            - GW=172.16.15.190
         networks:
             meucci:
-                ipv4_address: 172.29.0.12
+                ipv4_address: 172.16.15.132
     m3:
         image: ${IMAGE}
         privileged: true
         volumes:
-            - ./bricks/m3:/data
+            - ${BRICKS}/m3:/data
             - ./hosts:/etc/hosts
         environment:
-            - GW=172.29.0.254
+            - GW=172.16.15.190
         networks:
             meucci:
-                ipv4_address: 172.29.0.13
+                ipv4_address: 172.16.15.133
 
+    kvm:
+        image: galileo/kvm
+        privileged: true
+        build:
+            context: ./docker/Dockerfile.kvm
+            args:
+                GW: 172.16.15.62
+        networks:
+            - agsm
+        volumes:
+            - ./hosts:/etc/hosts
+            - ./vms:/vms
 networks:
-  agsm:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.0.0/24
-  meucci:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.29.0.0/24
-  internet:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.30.0.0/24
+    agsm:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.16.15.0/26
+    internet:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.16.15.64/26
+    meucci:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.16.15.128/26

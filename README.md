@@ -1,13 +1,22 @@
-# glusterfs test
+# glusterfs docker test laboratory
 
-6 nodes: 3 'a' and 3 'm'
+6 nodes in two connected networks via 'internet' network:
 
-arbiter: ./task-arbiter
-replica: ./task-replica
+- 3 'a' nodes in agsm site
+- 3 'm' nodes in meucci site
+
+## prereq
+
+guestfs-tools package to customize ubuntu cloud image
+
+```
+paru -S --mflags "--nocheck" guestfs-tools
+```
 
 ## build
 
-build docker image 
+build docker image
+
 ```
 ./task build
 ```
@@ -59,36 +68,42 @@ create file on m3: /mnt/gv0/m3-normal.txt
 ## create some files
 
 create some files on each host
+
 ```
 ./task test mylabel
 ```
 
 check files
+
 ```
 ./task check
 ```
+
 ## failure test on meucci
 
 disconnect meucci
+
 ```
 ./task meucci:disconnect
 ```
 
 write new files
+
 ```
 ./task test disconnected
 ```
 
 overwrite files
+
 ```
 ./task test normal
 ```
 
 check files
+
 ```
 ./task check
 ```
-
 
 kill meucci servers
 
@@ -103,6 +118,7 @@ create new files
 ```
 
 disconnect meucci from agsm
+
 ```
 ./task meucci:disconnect
 ./task test disconnected
@@ -113,7 +129,6 @@ disconnect meucci from agsm
 ```
 gluster --remote-host=localhost volume list
 ```
-
 
 ## expand volumes with new bricks
 
@@ -135,8 +150,6 @@ now check files created in ./volumes
 tree -h volumes
 ```
 
-
-
 ## recover from failure
 
 restore servers
@@ -149,4 +162,60 @@ now check files created in ./volumes
 
 ```
 tree -h volumes
+```
+
+## kvm
+
+download vm image
+
+```
+./task vm:download
+```
+
+create vm
+
+```
+./task vm:create
+```
+
+connect to vm with user root and password root
+
+```
+docker compose exec kvm virsh console ubuntu
+dhclient enp1s0
+
+```
+
+filesystem test on vm
+
+```
+apt update && apt install -y fio
+fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --bs=4k --iodepth=64 --readwrite=randrw --rwmixread=75 --size=4G --filename=/root/test
+
+```
+
+on my zfs host
+```
+READ: bw=49.0MiB/s (51.4MB/s), 49.0MiB/s-49.0MiB/s (51.4MB/s-51.4MB/s), io=3070MiB (3219MB), run=62638-62638msec
+WRITE: bw=16.4MiB/s (17.2MB/s), 16.4MiB/s-16.4MiB/s (17.2MB/s-17.2MB/s), io=1026MiB (1076MB), run=62638-62638msec
+```
+
+
+
+example create image
+
+```
+qemu-img create -f qcow2 gluster://a1/gv0/vm1.img 10G
+```
+
+example load ubuntu cloud image mount gluster filesystem
+
+```
+docker compose exec kvm bash
+
+mount -t glusterfs a1:/gv0 /mnt
+cp -v /vms/jammy-server-cloudimg-amd64-disk-kvm.img /mnt/
+umount /mnt
+
+virsh define /vms/ubuntu.xml
 ```

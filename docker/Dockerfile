@@ -16,4 +16,4 @@ VOLUME /var/lib/glusterd
 EXPOSE 24007 24008 49152 49153 49154 49155 49156 49157
 
 #ENTRYPOINT /entrypoint.sh
-CMD /entrypoint.sh $GW
+CMD /entrypoint.sh
