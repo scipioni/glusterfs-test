@@ -22,7 +22,7 @@ RUN echo 'ip route del default' >> /etc/rc.local
 RUN echo "ip route add default via ${GW}" >> /etc/rc.local
 RUN chmod +x /etc/rc.local
 
-RUN systemctl enables rc-local
+#RUN systemctl enables rc-local
 
 #RUN /bin/sh -c cd /lib/systemd/system/sysinit.target.wants/ && rm $(ls | grep -v systemd-tmpfiles-setup) # buildkit
 #RUN /bin/sh -c rm -f /lib/systemd/system/multi-user.target.wants/*     /etc/systemd/system/*.wants/*     /lib/systemd/system/local-fs.target.wants/*     /lib/systemd/system/sockets.target.wants/*udev*     /lib/systemd/system/sockets.target.wants/*initctl*     /lib/systemd/system/basic.target.wants/*     /lib/systemd/system/anaconda.target.wants/*     /lib/systemd/system/plymouth*     /lib/systemd/system/systemd-update-utmp* # buildkit

@@ -24,9 +24,6 @@ services:
         #     - 49155:49155
         #     - 49156:49156
         #     - 49157:49157
-        #network_mode: "host"
-        # networks:
-        #     - site-a
     a2:
         image: ${IMAGE}
         privileged: true
@@ -108,7 +105,8 @@ services:
         image: galileo/kvm
         privileged: true
         build:
-            context: ./docker/Dockerfile.kvm
+            context: ./docker
+            dockerfile: Dockerfile.kvm
             args:
                 GW: 172.16.15.62
         networks:
