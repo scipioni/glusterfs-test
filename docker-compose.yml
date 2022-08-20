@@ -1,6 +1,6 @@
 # agsm <-> gwa <-> gwm <-> meucci
 
-# 172.28.0.1 ---gwa-internal--- 172.28.0.254-172.30.0.2 ---internet--- 172.30.0.4-172.29.0.254 ---gwm-internal---  172.29.0.1
+# 172.28.0.1 ---agsm--- 172.28.0.254-172.30.0.2 ---internet--- 172.30.0.4-172.29.0.254 ---meucci---  172.29.0.1
 
 
 version: '3'
@@ -14,7 +14,7 @@ services:
         environment:
             - GW=172.28.0.254
         networks:
-            gwa-internal:
+            agsm:
                 ipv4_address: 172.28.0.11
         # ports:
         #     - 24007:24007
@@ -37,7 +37,7 @@ services:
         environment:
             - GW=172.28.0.254
         networks:
-            gwa-internal:
+            agsm:
                 ipv4_address: 172.28.0.12
     a3:
         image: ${IMAGE}
@@ -48,7 +48,7 @@ services:
         environment:
             - GW=172.28.0.254
         networks:
-            gwa-internal:
+            agsm:
                 ipv4_address: 172.28.0.13
     gwa:  
         image: ${IMAGE}
@@ -56,7 +56,7 @@ services:
         environment:
             - ROUTE=172.29.0.0/24 via 172.30.0.4
         networks:
-            gwa-internal:
+            agsm:
                 ipv4_address: 172.28.0.254
             internet:
                 ipv4_address: 172.30.0.2
@@ -67,7 +67,7 @@ services:
         environment:
             - ROUTE=172.28.0.0/24 via 172.30.0.2
         networks:
-            gwm-internal:
+            meucci:
                 ipv4_address: 172.29.0.254
             internet:
                 ipv4_address: 172.30.0.4
@@ -80,7 +80,7 @@ services:
         environment:
             - GW=172.29.0.254
         networks:
-            gwm-internal:
+            meucci:
                 ipv4_address: 172.29.0.11
     m2:
         image: ${IMAGE}
@@ -91,7 +91,7 @@ services:
         environment:
             - GW=172.29.0.254
         networks:
-            gwm-internal:
+            meucci:
                 ipv4_address: 172.29.0.12
     m3:
         image: ${IMAGE}
@@ -102,16 +102,16 @@ services:
         environment:
             - GW=172.29.0.254
         networks:
-            gwm-internal:
+            meucci:
                 ipv4_address: 172.29.0.13
 
 networks:
-  gwa-internal:
+  agsm:
     driver: bridge
     ipam:
       config:
         - subnet: 172.28.0.0/24
-  gwm-internal:
+  meucci:
     driver: bridge
     ipam:
       config:

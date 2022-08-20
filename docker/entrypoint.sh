@@ -19,8 +19,8 @@ if [ -n "$ROUTE" ]; then
     echo "add route $ROUTE"
     #iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE 
     #iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
-    iptables -A FORWARD -i eth1 -j ACCEPT
-    iptables -A FORWARD -i eth0 -j ACCEPT
+    #iptables -A FORWARD -i eth1 -j ACCEPT
+    #iptables -A FORWARD -i eth0 -j ACCEPT
     ip route add $ROUTE
     exec tail -f /dev/null
 fi

@@ -9,7 +9,7 @@ replica: ./task-replica
 
 build docker image 
 ```
-./task-arbiter build
+./task build
 ```
 
 ## boot
@@ -20,46 +20,46 @@ bootstrap glusterfs volume and create some files
 ./task boot
 ```
 
-create some files on each host
 ```
-./task test A
-```
-
-now check files created in ./bricks: each file has 3 copies
-
-
-```
-create file on a2: /mnt/gv0/example-A-a2.txt
-create file on a3: /mnt/gv0/example-A-a3.txt
-create file on m2: /mnt/gv0/example-A-m2.txt
-create file on m3: /mnt/gv0/example-A-m3.txt
+create file on a1: /mnt/gv0/normal-a1.txt
+create file on a2: /mnt/gv0/normal-a2.txt
+create file on a3: /mnt/gv0/normal-a3.txt
+create file on m1: /mnt/gv0/normal-m1.txt
+create file on m2: /mnt/gv0/normal-m2.txt
+create file on m3: /mnt/gv0/normal-m3.txt
 
 [   8]  bricks
 ├── [   3]  a1
 │   └── [   6]  brick1
-│       ├── [   0]  example-A-a3.txt
-│       └── [   0]  example-A-m2.txt
+│       ├── [  20]  normal-a1.txt
+│       └── [  20]  normal-m1.txt
 ├── [   3]  a2
-│   └── [   6]  brick1
-│       ├── [   5]  example-A-a3.txt
-│       └── [   5]  example-A-m2.txt
+│   └── [   5]  brick1
+│       └── [  20]  normal-m3.txt
 ├── [   3]  a3
-│   └── [   6]  brick1
-│       ├── [   5]  example-A-a2.txt
-│       └── [   5]  example-A-m3.txt
+│   └── [   7]  brick1
+│       ├── [  20]  normal-a2.txt
+│       ├── [  20]  normal-a3.txt
+│       └── [  20]  normal-m2.txt
 ├── [   3]  m1
 │   └── [   6]  brick1
-│       ├── [   0]  example-A-a2.txt
-│       └── [   0]  example-A-m3.txt
+│       ├── [  20]  normal-a1.txt
+│       └── [  20]  normal-m1.txt
 ├── [   3]  m2
-│   └── [   6]  brick1
-│       ├── [   5]  example-A-a3.txt
-│       └── [   5]  example-A-m2.txt
+│   └── [   5]  brick1
+│       └── [  20]  normal-m3.txt
 └── [   3]  m3
-    └── [   6]  brick1
-        ├── [   5]  example-A-a2.txt
-        └── [   5]  example-A-m3.txt
+    └── [   7]  brick1
+        ├── [  20]  normal-a2.txt
+        ├── [  20]  normal-a3.txt
+        └── [  20]  normal-m2.txt
 
+```
+
+
+create some files on each host
+```
+./task test mylabel
 ```
 ## failure test on meucci
 
@@ -72,7 +72,13 @@ task meucci:kill
 create new files
 
 ```
-task test C
+./task test kill
+```
+
+disconnect meucci from agsm
+```
+./task meucci:disconnect
+./task test disconnected
 ```
 
 ## client

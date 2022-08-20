@@ -47,7 +47,7 @@ function :boot {
     docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
   done
 
-  #:test A
+  :test normal
 }
 
 function :test {
@@ -55,9 +55,9 @@ function :test {
 
   echo
   for host in ${HOSTS}; do
-    echo "create file on $host: /mnt/gv0/example-$test-$host.txt"
+    echo "create file on $host: /mnt/gv0/$test-$host.txt"
     #docker-compose exec $host truncate -s 10m /mnt/gv0/example-$test-$host.txt
-    docker-compose exec $host bash -c "echo $test-$host > /mnt/gv0/example-$test-$host.txt"
+    docker-compose exec $host bash -c "echo -n $host-$test_`date +'%H:%M:%S'`'; '  >> /mnt/gv0/$host-$test.txt"
   done
 
   # check
@@ -67,15 +67,26 @@ function :test {
 
 function :check {
   for host in $HOSTS; do
-    echo -n "$host: "
-    docker-compose exec $host bash -c "cat /mnt/gv0/*"
+    echo "$host: "
+    docker-compose exec $host bash -c 'for i in /mnt/gv0/*; do echo -n $i ": "; cat $i; echo ; done'
+    echo "-----------------------------"
   done
 }
 
 function :expand {
   # aggiungiamo dei nuovi brick (ovvero volumi openstack)
-  docker-compose exec wa2 gluster volume add-brick gv0 replica 2 wa2:/data/brick2 wm2:/data/brick2
-  docker-compose exec wa2 gluster volume rebalance gv0 start
+  docker-compose exec $MASTER gluster volume add-brick gv0 replica 2 wa2:/data/brick2 wm2:/data/brick2
+  docker-compose exec $MASTER gluster volume rebalance gv0 start
+}
+
+function :meucci:disconnect {
+  echo "disconnect meucci from agsm: no internet connection between sites"
+  docker-compose exec gwm sh -c "echo 0 > /proc/sys/net/ipv4/ip_forward"
+}
+
+function :meucci:connect {
+  echo "reconnecting meucci"
+  docker-compose exec gwm sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
 }
 
 function :meucci:kill {
