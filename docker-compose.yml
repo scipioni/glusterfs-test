@@ -1,3 +1,8 @@
+# agsm <-> gwa <-> gwm <-> meucci
+
+# 172.28.0.1 ---gwa-internal--- 172.28.0.254-172.30.0.2 ---internet--- 172.30.0.4-172.29.0.254 ---gwm-internal---  172.29.0.1
+
+
 version: '3'
 services:
     a1:
@@ -5,6 +10,12 @@ services:
         privileged: true
         volumes:
             - ./bricks/a1:/data
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.28.0.254
+        networks:
+            gwa-internal:
+                ipv4_address: 172.28.0.11
         # ports:
         #     - 24007:24007
         #     - 24008:24008
@@ -17,44 +28,96 @@ services:
         #network_mode: "host"
         # networks:
         #     - site-a
- 
     a2:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/a2:/data
-        # networks:
-        #     - site-a
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.28.0.254
+        networks:
+            gwa-internal:
+                ipv4_address: 172.28.0.12
     a3:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/a3:/data
-        # networks:
-        #     - site-a
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.28.0.254
+        networks:
+            gwa-internal:
+                ipv4_address: 172.28.0.13
+    gwa:  
+        image: ${IMAGE}
+        privileged: true
+        environment:
+            - ROUTE=172.29.0.0/24 via 172.30.0.4
+        networks:
+            gwa-internal:
+                ipv4_address: 172.28.0.254
+            internet:
+                ipv4_address: 172.30.0.2
+
+    gwm:  
+        image: ${IMAGE}
+        privileged: true
+        environment:
+            - ROUTE=172.28.0.0/24 via 172.30.0.2
+        networks:
+            gwm-internal:
+                ipv4_address: 172.29.0.254
+            internet:
+                ipv4_address: 172.30.0.4
     m1:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/m1:/data
-        # ports:
-        #     - 24007:24007
-        # networks:
-        #     - site-m
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.29.0.254
+        networks:
+            gwm-internal:
+                ipv4_address: 172.29.0.11
     m2:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/m2:/data
-        # networks:
-        #     - site-m
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.29.0.254
+        networks:
+            gwm-internal:
+                ipv4_address: 172.29.0.12
     m3:
         image: ${IMAGE}
         privileged: true
         volumes:
             - ./bricks/m3:/data
-        # networks:
-        #     - site-m
-# networks:
-#   site-a:
-#   site-m:
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.29.0.254
+        networks:
+            gwm-internal:
+                ipv4_address: 172.29.0.13
+
+networks:
+  gwa-internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+  gwm-internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24
+  internet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

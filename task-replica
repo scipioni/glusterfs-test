@@ -4,7 +4,6 @@ dir=$(pwd)
 
 MASTER=m1
 HOSTS="a1 a2 a3 m1 m2 m3"
-HOSTS_DATA="a2 a3 m2 m3" # no arbiter a1 m1
 
 function :build {
   docker build -t galileo/glusterfs ./docker
@@ -34,11 +33,12 @@ function :boot {
 
   # probe peer hosts
   for host in $HOSTS; do
+    echo "peer host $host"
     docker-compose exec $MASTER gluster peer probe $host
   done
 
   docker-compose exec $MASTER gluster volume create gv0 replica 2 a1:/data/brick1 m1:/data/brick1 a2:/data/brick1 m2:/data/brick1 a3:/data/brick1 m3:/data/brick1 force
-  sleep 2
+  sleep 1
   docker-compose exec $MASTER gluster volume start gv0
 
   # mount volume on each node in /mnt/gv0
