@@ -132,14 +132,19 @@ function :vm:create {
 
 function :vm:dowload {
   IMAGE=jammy-server-cloudimg-amd64-disk-kvm.img
-  if [ -f ./vms/$IMAGE ]; then
-    mkdir -p runtime
-    cd runtime
+  if [ ! -f ./vms/$IMAGE ]; then
+    mkdir -p vms
+    cd vms
     wget http://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-disk-kvm.img \
     && virt-customize -a vms/jammy-server-cloudimg-amd64-disk-kvm.img --root-password password:root
-    qemu-img create -f qcow2 -b $IMAGE jammy.qcow2 10G
+    #qemu-img create -f qcow2 -b $IMAGE jammy.qcow2 10G
     echo 'customized ubuntu with password root un user root'
   fi
+}
+
+function :vm:cidata {
+  cd vms
+  genisoimage -output cidata.iso -V cidata -r -J user-data meta-data
 }
 
 function :help {
