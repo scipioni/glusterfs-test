@@ -21,47 +21,74 @@ bootstrap glusterfs volume and create some files
 ```
 
 ```
-create file on a1: /mnt/gv0/normal-a1.txt
-create file on a2: /mnt/gv0/normal-a2.txt
-create file on a3: /mnt/gv0/normal-a3.txt
-create file on m1: /mnt/gv0/normal-m1.txt
-create file on m2: /mnt/gv0/normal-m2.txt
-create file on m3: /mnt/gv0/normal-m3.txt
+create file on a1: /mnt/gv0/a1-normal.txt
+create file on a2: /mnt/gv0/a2-normal.txt
+create file on a3: /mnt/gv0/a3-normal.txt
+create file on m1: /mnt/gv0/m1-normal.txt
+create file on m2: /mnt/gv0/m2-normal.txt
+create file on m3: /mnt/gv0/m3-normal.txt
 
 [   8]  bricks
 ├── [   3]  a1
-│   └── [   6]  brick1
-│       ├── [  20]  normal-a1.txt
-│       └── [  20]  normal-m1.txt
-├── [   3]  a2
-│   └── [   5]  brick1
-│       └── [  20]  normal-m3.txt
-├── [   3]  a3
 │   └── [   7]  brick1
-│       ├── [  20]  normal-a2.txt
-│       ├── [  20]  normal-a3.txt
-│       └── [  20]  normal-m2.txt
-├── [   3]  m1
+│       ├── [  13]  a1-normal.txt
+│       ├── [  13]  a2-normal.txt
+│       └── [  13]  m1-normal.txt
+├── [   3]  a2
 │   └── [   6]  brick1
-│       ├── [  20]  normal-a1.txt
-│       └── [  20]  normal-m1.txt
-├── [   3]  m2
+│       ├── [  13]  a3-normal.txt
+│       └── [  13]  m3-normal.txt
+├── [   3]  a3
 │   └── [   5]  brick1
-│       └── [  20]  normal-m3.txt
+│       └── [  13]  m2-normal.txt
+├── [   3]  m1
+│   └── [   7]  brick1
+│       ├── [  13]  a1-normal.txt
+│       ├── [  13]  a2-normal.txt
+│       └── [  13]  m1-normal.txt
+├── [   3]  m2
+│   └── [   6]  brick1
+│       ├── [  13]  a3-normal.txt
+│       └── [  13]  m3-normal.txt
 └── [   3]  m3
-    └── [   7]  brick1
-        ├── [  20]  normal-a2.txt
-        ├── [  20]  normal-a3.txt
-        └── [  20]  normal-m2.txt
+    └── [   5]  brick1
+        └── [  13]  m2-normal.txt
 
 ```
 
+## create some files
 
 create some files on each host
 ```
 ./task test mylabel
 ```
+
+check files
+```
+./task check
+```
 ## failure test on meucci
+
+disconnect meucci
+```
+./task meucci:disconnect
+```
+
+write new files
+```
+./task test disconnected
+```
+
+overwrite files
+```
+./task test normal
+```
+
+check files
+```
+./task check
+```
+
 
 kill meucci servers
 

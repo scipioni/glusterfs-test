@@ -55,7 +55,7 @@ function :test {
 
   echo
   for host in ${HOSTS}; do
-    echo "create file on $host: /mnt/gv0/$test-$host.txt"
+    echo "create file on $host: /mnt/gv0/$host-$test.txt"
     #docker-compose exec $host truncate -s 10m /mnt/gv0/example-$test-$host.txt
     docker-compose exec $host bash -c "echo -n $host-$test_`date +'%H:%M:%S'`'; '  >> /mnt/gv0/$host-$test.txt"
   done
