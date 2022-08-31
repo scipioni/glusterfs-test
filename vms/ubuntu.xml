@@ -1,48 +1,58 @@
 <domain type="kvm">
-    <name>ubuntu</name>
-    <metadata>
-      <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
-        <libosinfo:os id="http://ubuntu.com/ubuntu/22.04"/>
-      </libosinfo:libosinfo>
-    </metadata>
-    <memory>4194304</memory>
-    <currentMemory>4194304</currentMemory>
-    <vcpu>2</vcpu>
-    <os>
-      <type arch="x86_64" machine="q35">hvm</type>
-      <boot dev="hd"/>
-    </os>
-    <features>
-      <acpi/>
-      <apic/>
-      <vmport state="off"/>
-    </features>
-    <cpu mode="host-passthrough"/>
-    <clock offset="utc">
-      <timer name="rtc" tickpolicy="catchup"/>
-      <timer name="pit" tickpolicy="delay"/>
-      <timer name="hpet" present="no"/>
-    </clock>
-    <pm>
-      <suspend-to-mem enabled="no"/>
-      <suspend-to-disk enabled="no"/>
-    </pm>
-    <devices>
-      <emulator>/usr/bin/qemu-system-x86_64</emulator>
-      <!-- <disk type="file" device="disk">
+  <name>ubuntu</name>
+  <metadata>
+    <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
+      <libosinfo:os id="http://ubuntu.com/ubuntu/22.04" />
+    </libosinfo:libosinfo>
+  </metadata>
+  <memory>4194304</memory>
+  <currentMemory>4194304</currentMemory>
+  <vcpu>2</vcpu>
+  <os>
+    <type arch="x86_64" machine="q35">hvm</type>
+    <boot dev="hd" />
+  </os>
+  <features>
+    <acpi />
+    <apic />
+    <vmport state="off" />
+  </features>
+  <cpu mode="host-passthrough" />
+  <clock offset="utc">
+    <timer name="rtc" tickpolicy="catchup" />
+    <timer name="pit" tickpolicy="delay" />
+    <timer name="hpet" present="no" />
+  </clock>
+  <pm>
+    <suspend-to-mem enabled="no" />
+    <suspend-to-disk enabled="no" />
+  </pm>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <!-- <disk type="file" device="disk">
         <driver name="qemu" type="qcow2"/>
         <source file="/var/lib/libvirt/images/jammy-server-cloudimg-amd64-disk-kvm.img"/>
         <target dev="vda" bus="virtio"/>
       </disk> -->
-      <disk type='network' device='disk'>
-        <driver name='qemu' type='qcow2' cache='none'/>
-        <source protocol='gluster' name='gv0/jammy.qcow2'>
-             <host name='a1' port='24007'/>
-         </source>
-        <target dev='vda' bus='virtio'/>
-        <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
-     </disk>
-      <!-- <controller type="usb" model="qemu-xhci" ports="15"/>
+    <disk type='network' device='disk'>
+      <driver name='qemu' type='qcow2' cache='none' />
+      <source protocol='gluster' name='gv0/jammy.qcow2'>
+        <host name='a1' port='24007' />
+      </source>
+      <target dev='vda' bus='virtio' />
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0' />
+    </disk>
+    <disk type="network" device="cdrom">
+      <driver name="qemu" type="raw" />
+      <source protocol='gluster' name='gv0/ubuntu-seed.img'>
+        <host name='a1' port='24007' />
+      </source>
+
+      <target dev="sda" bus="sata" />
+      <readonly />
+    </disk>
+
+    <!-- <controller type="usb" model="qemu-xhci" ports="15"/>
       <controller type="pci" model="pcie-root"/>
       <controller type="pci" model="pcie-root-port"/>
       <controller type="pci" model="pcie-root-port"/>
@@ -58,33 +68,38 @@
       <controller type="pci" model="pcie-root-port"/>
       <controller type="pci" model="pcie-root-port"/>
       <controller type="pci" model="pcie-root-port"/> -->
-      <interface type="network">
-        <source network="default"/>
-        <mac address="52:54:00:c4:80:0c"/>
+    <interface type="network">
+      <source network="default" />
+      <mac address="52:54:00:c4:80:0c" />
+      <model type="virtio" />
+    </interface>
+    <!-- <interface type="bridge">
+        <source bridge="br-pub"/>
+        <mac address="52:54:00:83:6d:7c"/>
         <model type="virtio"/>
-      </interface>
-      <console type="pty"/>
-      <channel type="unix">
-        <source mode="bind"/>
-        <target type="virtio" name="org.qemu.guest_agent.0"/>
-      </channel>
-      <!-- <channel type="spicevmc">
+      </interface> -->
+    <console type="pty" />
+    <channel type="unix">
+      <source mode="bind" />
+      <target type="virtio" name="org.qemu.guest_agent.0" />
+    </channel>
+    <!-- <channel type="spicevmc">
         <target type="virtio" name="com.redhat.spice.0"/>
       </channel> -->
-      <!-- <input type="tablet" bus="usb"/>
+    <!-- <input type="tablet" bus="usb"/>
       <graphics type="spice" port="-1" tlsPort="-1" autoport="yes">
         <image compression="off"/>
       </graphics> -->
-      <!-- <sound model="ich9"/> -->
-      <video>
-        <model type="qxl"/>
-      </video>
-      <!-- <redirdev bus="usb" type="spicevmc"/>
+    <!-- <sound model="ich9"/> -->
+    <video>
+      <model type="qxl" />
+    </video>
+    <!-- <redirdev bus="usb" type="spicevmc"/>
       <redirdev bus="usb" type="spicevmc"/>
       <memballoon model="virtio"/> -->
-      <rng model="virtio">
-        <backend model="random">/dev/urandom</backend>
-      </rng>
-    </devices>
-  </domain>
+    <rng model="virtio">
+      <backend model="random">/dev/urandom</backend>
+    </rng>
+  </devices>
+</domain>
   

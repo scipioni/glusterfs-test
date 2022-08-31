@@ -1,0 +1,8 @@
+<pool type='gluster'>
+    <name>glusterfs-pool</name>
+    <source>
+       <host name='a1'/>
+       <dir path='/'/>
+       <name>gv0</name>
+    </source>
+ </pool>

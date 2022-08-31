@@ -10,6 +10,14 @@ function :build {
   docker compose build kvm
 }
 
+function :gluster:reset {
+  sudo systemctl stop glusterd
+  sudo cp -a /var/lib/glusterd/glusterd.info /tmp
+  sudo rm -fR /var/lib/glusterd/*
+  sudo cp -a /tmp/glusterd.info /var/lib/glusterd/
+  sudo systemctl start glusterd
+}
+
 function :start {
   docker-compose up --remove-orphans
 }
@@ -29,10 +37,14 @@ function :destroy {
 
 function :boot {
   :destroy
+  :gluster:reset
   docker-compose up --remove-orphans -d
+  sudo virsh pool-start glusterfs-pool >/dev/null 2>&1
   sleep 5
 
   # probe peer hosts
+  echo "peer host a0"
+  docker-compose exec $MASTER gluster peer probe a0
   for host in $HOSTS; do
     echo "peer host $host"
     docker-compose exec $MASTER gluster peer probe $host
@@ -51,7 +63,18 @@ function :boot {
     docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
   done
 
+  sudo gluster peer status |grep State
   :test normal
+}
+
+
+function georeplication {
+  # https://medium.com/geekculture/set-up-geo-replication-f7b9cb79bca4
+
+  # When the volume set option is enabled, a gluster volume named gluster_shared_storage is created in the cluster, and is mounted at /var/run/gluster/shared_storage on all the nodes in the cluster
+  gluster vol set all cluster.enable-shared-storage enable
+
+
 }
 
 function :test {
@@ -114,32 +137,134 @@ function :status {
   docker-compose exec $MASTER gluster peer status
 }
 
-function :vm:create {
+function :vm:docker:prepare {
   # copiamo l'immagine backing su gluster
-  docker-compose exec kvm mount -t glusterfs $MASTER:/gv0 /mnt
-  docker-compose exec kvm cp -v /vms/jammy-server-cloudimg-amd64-disk-kvm.img /mnt/
-  docker-compose exec kvm umount /mnt
+  RUN="docker-compose exec kvm"
 
-  # creaiamo una immagine jammy.qcow2 da 10G con backing quella ufficiale
-  qemu-img create -f qcow2 -F qcow2 -b gluster://a1/gv0/jammy-server-cloudimg-amd64-disk-kvm.img gluster://a1/gv0/jammy.qcow2 10G
+  $RUN mount -t glusterfs $MASTER:/gv0 /mnt
+  #$RUN cp -v /vms/jammy-server-cloudimg-amd64-disk-kvm.img /mnt/ubuntu.img
+  $RUN cp -v /vms/jammy-server-cloudimg-amd64.img /mnt/ubuntu.img
   
-  # creiamo la vm
-  docker-compose exec kvm virsh destroy ubuntu >/dev/null 2>&1 
-  docker-compose exec kvm virsh undefine ubuntu >/dev/null 2>&1 
-  docker-compose exec kvm virsh define /vms/ubuntu.xml
-  docker-compose exec kvm virsh start ubuntu
+  # creiamo l'immagine
+  $RUN qemu-img resize /mnt/ubuntu.img 10G
+  # oppure la usiamo con backing
+  #$RUN qemu-img create -f qcow2 -F qcow2 -b gluster://a1/gv0/jammy-server-cloudimg-amd64-disk-kvm.img gluster://a1/gv0/jammy.qcow2 10G
+  
+  $RUN cloud-localds -v --network-config=/vms/network_config.cfg /mnt/ubuntu-seed.iso /vms/cloud_init.cfg
+  #$RUN genisoimage -output /mnt/ubuntu-seed.iso -V cidata -r -J /vms/cloud_init.cfg /vms/ubuntu.cfg
+  $RUN umount /mnt
+
+  $RUN virsh pool-define /vms/pool.xml
+  $RUN virsh pool-start glusterfs-pool
+
+  # creiamo una immagine jammy.qcow2 da 10G con backing quella ufficiale
+  #$RUN qemu-img create -f qcow2 -F qcow2 -b gluster://a1/gv0/jammy-server-cloudimg-amd64-disk-kvm.img gluster://a1/gv0/jammy.qcow2 10G
+  
+
 }
 
-function :vm:dowload {
-  IMAGE=jammy-server-cloudimg-amd64-disk-kvm.img
-  if [ -f ./vms/$IMAGE ]; then
+function :vm:prepare {
+  MNT=/tmp/gv0
+  sudo mkdir -p $MNT
+  sudo mount -t glusterfs a0:/gv0 $MNT
+
+  #sudo cp -v ./vms/jammy-server-cloudimg-amd64.img $MNT/ubuntu.qcow2
+  sudo cp -v ./vms/jammy.img $MNT/jammy.img
+  sudo cp -v ./vms/memtest.iso $MNT/
+  
+  # creiamo l'immagine
+  #sudo qemu-img resize $MNT/ubuntu.qcow2 10G
+  # oppure la usiamo con backing
+  #$RUN qemu-img create -f qcow2 -F qcow2 -b gluster://a1/gv0/jammy-server-cloudimg-amd64-disk-kvm.img gluster://a1/gv0/jammy.qcow2 10G
+  
+  sudo cloud-localds -v --network-config=./vms/network_config.cfg $MNT/ubuntu-seed.iso ./vms/cloud_init.cfg
+  #$RUN genisoimage -output /mnt/ubuntu-seed.iso -V cidata -r -J /vms/cloud_init.cfg /vms/ubuntu.cfg
+  sudo umount $MNT
+
+  # creiamo una immagine jammy.qcow2 da 10G con backing quella ufficiale
+  #$RUN qemu-img create -f qcow2 -F qcow2 -b gluster://a1/gv0/jammy-server-cloudimg-amd64-disk-kvm.img gluster://a1/gv0/jammy.qcow2 10G
+}
+
+function :vm:test:gluster {
+  sudo qemu-system-x86_64 -cdrom gluster://a0/gv0/memtest.iso
+}
+
+function :vm:gui {
+  exec gvncviewer localhost:10
+}
+
+function :vm:create {
+  # creiamo la vm
+  sudo virsh destroy ubuntu >/dev/null 2>&1 
+  sudo virsh undefine ubuntu >/dev/null 2>&1
+  sudo virsh vol-list glusterfs-pool
+  sudo virt-install --name ubuntu  \
+    --import \
+    --osinfo ubuntu22.04 \
+    --memory 2048 \
+    --vcpus 2 \
+    --disk vol=glusterfs-pool/jammy.img,device=disk,bus=virtio,io=native,cache=none \
+    --disk vol=glusterfs-pool/ubuntu-seed.iso,device=cdrom  \
+    --network network:default \
+    --graphics none --noautoconsole 
+
+    # --disk vol=glusterfs-pool/ubuntu.img,device=disk,bus=virtio,io=threads \
+}
+
+function :vm:docker:create {
+  RUN="docker-compose exec kvm"
+
+
+  # creiamo la vm
+  $RUN virsh destroy ubuntu >/dev/null 2>&1 
+  $RUN virsh undefine ubuntu >/dev/null 2>&1
+  #xhost '+local:*'
+  $RUN virsh pool-refresh glusterfs-pool
+  $RUN virsh vol-list glusterfs-pool
+  # virt-install --name ubuntu  --osinfo ubuntu22.04 --disk ubuntu.img,device=disk,bus=virtio --disk ubuntu-seed.iso,device=cdrom --graphics none --noautoconsole --import
+  $RUN virt-install --name ubuntu  \
+    --import \
+    --osinfo ubuntu22.04 \
+    --memory 2048 \
+    --vcpus 2 \
+    --disk vol=glusterfs-pool/ubuntu.img,device=disk,bus=virtio \
+    --disk vol=glusterfs-pool/ubuntu-seed.iso,device=cdrom  \
+    --network network:default \
+    --graphics none --noautoconsole \
+    --console pty,target_type=virtio
+    #--import
+    #--boot hd,menu=on \
+    #--graphics spice,listen=0.0.0.0
+    #--noautoconsole
+  #$RUN virsh define /vms/ubuntu.xml
+  #$RUN virsh start ubuntu
+}
+
+function :vm:download {
+  IMAGE=jammy-server-cloudimg-amd64.img
+  if [ ! -f ./vms/$IMAGE ]; then
     mkdir -p runtime
-    cd runtime
-    wget http://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-disk-kvm.img \
-    && virt-customize -a vms/jammy-server-cloudimg-amd64-disk-kvm.img --root-password password:root
-    qemu-img create -f qcow2 -b $IMAGE jammy.qcow2 10G
-    echo 'customized ubuntu with password root un user root'
+    cd vms
+    wget http://cloud-images.ubuntu.com/jammy/current/$IMAGE 
+    #&& virt-customize -a vms/jammy-server-cloudimg-amd64-disk-kvm.img --root-password password:root
+    #qemu-img create -f qcow2 -b $IMAGE jammy.qcow2 10G
+    #echo 'customized ubuntu with password root un user root'
   fi
+  if [ ! -f ./vms/jammy.img ]; then
+    cp jammy-server-cloudimg-amd64.img jammy.qcow2
+    qemu-img resize jammy.qcow2 10G
+    qemu-img convert -f qcow2 -O raw jammy.qcow2 jammy.img
+    #rm jammy.qcow2
+  fi
+
+}
+
+function :vm:console {
+  exec docker compose exec kvm virsh console ubuntu
+}
+
+function :vm:cli {
+  exec docker compose exec kvm bash
 }
 
 function :help {

@@ -4,6 +4,10 @@
 
 - 3 'a' nodes in agsm site
 - 3 'm' nodes in meucci site
+- one node a0 in agsm site with libvirt (host pc)
+
+
+TODO: https://docs.gluster.org/en/v3/Administrator%20Guide/formatting-and-mounting-bricks/
 
 ## prereq
 
@@ -12,6 +16,15 @@ guestfs-tools package to customize ubuntu cloud image
 ```
 paru -S --mflags "--nocheck" guestfs-tools
 ```
+
+### glusterfs on host 
+
+```
+paru -S glusterfs libvirt-storage-gluster cloud-image-utils
+virsh pool-define vms/pool.xml
+```
+
+append to local /etc/hosts content of ./hosts
 
 ## build
 
@@ -175,6 +188,11 @@ download vm image
 create vm
 
 ```
+./task vm:prepare
+
+# eventually test gluster pool
+./task vm:test:gluster
+
 ./task vm:create
 ```
 
@@ -190,15 +208,34 @@ filesystem test on vm
 
 ```
 apt update && apt install -y fio
-fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --bs=4k --iodepth=64 --readwrite=randrw --rwmixread=75 --size=4G --filename=/root/test
+
+
+fio --filename=/root/test1 --size=1Gb --direct=1 --rw=randrw --bs=64k --ioengine=libaio --iodepth=64 --runtime=15 --numjobs=4 --time_based --group_reporting  --name=throughput-test-job --unified_rw_reporting=1
 
 ```
 
 on my zfs host
 ```
-READ: bw=49.0MiB/s (51.4MB/s), 49.0MiB/s-49.0MiB/s (51.4MB/s-51.4MB/s), io=3070MiB (3219MB), run=62638-62638msec
-WRITE: bw=16.4MiB/s (17.2MB/s), 16.4MiB/s-16.4MiB/s (17.2MB/s-17.2MB/s), io=1026MiB (1076MB), run=62638-62638msec
+READ: bw=5018MiB/s (5261MB/s), 5018MiB/s-5018MiB/s (5261MB/s-5261MB/s), io=147GiB (158GB), run=30002-30002msec
+WRITE: bw=5018MiB/s (5262MB/s), 5018MiB/s-5018MiB/s (5262MB/s-5262MB/s), io=147GiB (158GB), run=30002-30002msec
+
+
+
 ```
+
+on vm
+```
+READ: bw=19.3MiB/s (20.3MB/s), 19.3MiB/s-19.3MiB/s (20.3MB/s-20.3MB/s), io=581MiB (609MB), run=30027-30027msec
+WRITE: bw=20.1MiB/s (21.1MB/s), 20.1MiB/s-20.1MiB/s (21.1MB/s-21.1MB/s), io=604MiB (633MB), run=30027-30027msec
+
+```
+
+dd if=/dev/zero of=/root/test1 bs=1M count=1024 conv=fsync
+vm with virtio on gluster pool: 
+  * io=threads: 550 MB/s
+  * io=native: 544 MB/s
+gluster mount: 484 MB/s
+native host: 1,6 GB/s
 
 
 
@@ -218,4 +255,10 @@ cp -v /vms/jammy-server-cloudimg-amd64-disk-kvm.img /mnt/
 umount /mnt
 
 virsh define /vms/ubuntu.xml
+```
+
+no
+```
+docker network create --attachable --opt com.docker.network.bridge.name=br-pub --opt com.docker.network.bridge.enable_ip_masquerade=false br-pub
+
 ```

@@ -101,20 +101,34 @@ services:
             meucci:
                 ipv4_address: 172.16.15.133
 
-    kvm:
-        image: galileo/kvm
-        privileged: true
-        build:
-            context: ./docker
-            dockerfile: Dockerfile.kvm
-            args:
-                GW: 172.16.15.62
-        networks:
-            - agsm
-        volumes:
-            - ./hosts:/etc/hosts
-            - ./vms:/vms
+    # kvm:
+    #     image: galileo/kvm
+    #     privileged: true
+    #     build:
+    #         context: ./docker
+    #         dockerfile: Dockerfile.kvm
+    #         args:
+    #             GW: 172.16.15.62
+    #     networks:
+    #         - agsm
+    #     #network_mode: host
+    #     volumes:
+    #         - ./hosts:/etc/hosts
+    #         - ./vms:/vms
+    #         - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    #     environment:
+    #         - DISPLAY
+    #     ports:
+    #         - 5910:5900
 networks:
+    # br-pub:
+    #     driver: bridge
+    #     driver_opts:
+    #         com.docker.network.bridge.name: "br-pub"
+    #         com.docker.network.bridge.enable_ip_masquerade: "false"
+    #     ipam:
+    #         config:
+    #             - subnet: 172.16.14.0/24
     agsm:
         driver: bridge
         ipam:

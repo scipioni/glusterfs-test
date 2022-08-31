@@ -11,6 +11,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libvirt-daemon-system \
     libvirt-clients \
     glusterfs-client \
+    cloud-image-utils \
+    bridge-utils \
+    virt-manager \
     && rm -rf /var/lib/apt/lists/*
 
 RUN echo "listen_tls = 0" >> /etc/libvirt/libvirtd.conf
