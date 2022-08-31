@@ -163,6 +163,7 @@ function :vm:docker:prepare {
 
 }
 
+<<<<<<< HEAD
 function :vm:prepare {
   MNT=/tmp/gv0
   sudo mkdir -p $MNT
@@ -265,6 +266,11 @@ function :vm:console {
 
 function :vm:cli {
   exec docker compose exec kvm bash
+}
+
+function :vm:cidata {
+  cd vms
+  genisoimage -output cidata.iso -V cidata -r -J user-data meta-data
 }
 
 function :help {
