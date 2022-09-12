@@ -46,6 +46,18 @@ services:
         networks:
             agsm:
                 ipv4_address: 172.16.15.13
+
+    a4:
+        image: ${IMAGE}
+        privileged: true
+        volumes:
+            - ${BRICKS}/a4:/data
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.16.15.62
+        networks:
+            agsm:
+                ipv4_address: 172.16.15.14
     gwa:
         image: ${IMAGE}
         privileged: true
@@ -100,6 +112,18 @@ services:
         networks:
             meucci:
                 ipv4_address: 172.16.15.133
+
+    m4:
+        image: ${IMAGE}
+        privileged: true
+        volumes:
+            - ${BRICKS}/m4:/data
+            - ./hosts:/etc/hosts
+        environment:
+            - GW=172.16.15.190
+        networks:
+            meucci:
+                ipv4_address: 172.16.15.134
 
     # kvm:
     #     image: galileo/kvm

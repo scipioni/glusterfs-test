@@ -140,7 +140,14 @@ disconnect meucci from agsm
 ## client
 
 ```
-gluster --remote-host=localhost volume list
+gluster --remote-host=localhost volume list 
+```
+
+## create meucci and after agsm
+
+```
+./task meucci:boot
+./task agsm:boot
 ```
 
 ## expand volumes with new bricks

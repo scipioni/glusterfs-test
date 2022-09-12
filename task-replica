@@ -67,6 +67,77 @@ function :boot {
   :test normal
 }
 
+# creiamo solo meucci
+function :meucci:boot {
+  :destroy
+  :gluster:reset
+  docker-compose up --remove-orphans -d
+  sudo virsh pool-start glusterfs-pool >/dev/null 2>&1
+  sleep 5
+
+  # probe peer hosts
+  for host in m1 m2 m3 m4; do
+    echo "peer host $host"
+    docker-compose exec $MASTER gluster peer probe $host
+  done
+
+  docker-compose exec $MASTER gluster volume create gv0 replica 2 m1:/data/brick1 m2:/data/brick1 m3:/data/brick1 m4:/data/brick1 force
+  sleep 1
+  docker-compose exec $MASTER gluster volume set gv0 server.allow-insecure on
+  #gluster volume set <vol-name> storage.owner-uid 107
+  #gluster volume set <vol-name> storage.owner-gid 107
+  docker-compose exec $MASTER gluster volume start gv0
+
+  # mount volume on each node in /mnt/gv0
+  for host in m1 m2 m3 m4; do
+    docker-compose exec $host mkdir -p /mnt/gv0
+    docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
+  done
+
+  sudo gluster peer status |grep State
+  HOSTS="m1 m2 m3"
+  :test normal
+}
+
+# creaiamo agsm dopo meucci
+function :agsm:boot {
+  for host in a1 a2 a3 a4; do
+    echo "peer host $host"
+    docker-compose exec $MASTER gluster peer probe $host
+  done
+  sleep 2
+
+  echo "sostituiamo m2 con a1"
+  docker-compose exec $MASTER gluster volume replace-brick gv0 m2:/data/brick1 a1:/data/brick1 commit force
+  sleep 2
+  # queste devono essere a 0
+  docker-compose exec $MASTER gluster volume heal gv0 info | grep entries
+
+  # formattiamo m2
+  docker-compose exec m2 rm -fR /data/brick1
+
+  echo "sostituiamo m3 con m2" 
+  docker-compose exec $MASTER gluster volume replace-brick gv0 m3:/data/brick1 m2:/data/brick1 commit force
+  sleep 2
+  docker-compose exec m3 rm -fR /data/brick1
+
+  echo "sostituiamo m4 con a2"
+  docker-compose exec $MASTER gluster volume replace-brick gv0 m4:/data/brick1 a2:/data/brick1 commit force
+  sleep 2
+  docker-compose exec m4 rm -fR /data/brick1  
+
+  echo "aggiungiamo m3 a3 m4 a4"
+  docker-compose exec $MASTER gluster volume add-brick gv0 replica 2 m3:/data/brick1 a3:/data/brick1 m4:/data/brick1 a4:/data/brick1 force
+  docker-compose exec $MASTER gluster volume rebalance gv0 start
+
+  # mount volume on each node in /mnt/gv0
+  for host in a1 a2 a3 a4; do
+    docker-compose exec $host mkdir -p /mnt/gv0
+    docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
+  done
+  
+}
+
 
 function georeplication {
   # https://medium.com/geekculture/set-up-geo-replication-f7b9cb79bca4
@@ -129,6 +200,7 @@ function :meucci:start {
     docker-compose exec $host mkdir -p /mnt/gv0
     docker-compose exec $host mount -t glusterfs localhost:/gv0 /mnt/gv0
   done
+
 }
 
 function :status {
@@ -163,7 +235,6 @@ function :vm:docker:prepare {
 
 }
 
-<<<<<<< HEAD
 function :vm:prepare {
   MNT=/tmp/gv0
   sudo mkdir -p $MNT
@@ -207,7 +278,8 @@ function :vm:create {
     --disk vol=glusterfs-pool/jammy.img,device=disk,bus=virtio,io=native,cache=none \
     --disk vol=glusterfs-pool/ubuntu-seed.iso,device=cdrom  \
     --network network:default \
-    --graphics none --noautoconsole 
+    --graphics none \
+    --noautoconsole 
 
     # --disk vol=glusterfs-pool/ubuntu.img,device=disk,bus=virtio,io=threads \
 }
